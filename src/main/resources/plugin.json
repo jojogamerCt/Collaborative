@@ -1,8 +1,8 @@
 {
   "id": "demo_java_plugin",
   "supportedversions": [
-    202500299999,
-    2025002
+    202500399999,
+    2025003
   ],
   "weight": 0,
   "javaplugin": "net.mcreator.demojavaplugin.DemoJavaPlugin",
