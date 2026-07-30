@@ -1,4 +1,4 @@
-name: Audit and build OpenBlocks Reborn 10.0.0
+name: Audit, test, and build OpenBlocks Reborn 10.0.0
 
 on:
   pull_request:
@@ -13,6 +13,7 @@ permissions:
 jobs:
   audit-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -57,20 +58,25 @@ jobs:
         working-directory: modern-port
         run: ./gradlew clean build --stacktrace --no-daemon
 
+      - name: Run required GameTests
+        working-directory: modern-port
+        run: ./gradlew runGameTestServer --stacktrace --no-daemon --console=plain | tee GAMETEST_LOG.txt
+
       - name: Package source snapshot
         if: always()
         run: |
           rm -rf modern-port/.git modern-port/.gradle modern-port/run modern-port/build/tmp modern-port/build/classes
           tar -czf OpenBlocks-Reborn-10.0.0-source.tar.gz modern-port
 
-      - name: Upload release and audit
+      - name: Upload release, test log, and audit
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: openblocks-reborn-10.0.0-audited-build
+          name: openblocks-reborn-10.0.0-verified-build
           path: |
             modern-port/build/libs/*.jar
             modern-port/OPENBLOCKS_REBORN_AUDIT.txt
+            modern-port/GAMETEST_LOG.txt
             modern-port/UPSTREAM_COMMIT.txt
             modern-port/gradle.properties
             OpenBlocks-Reborn-10.0.0-source.tar.gz
