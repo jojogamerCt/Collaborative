@@ -26,6 +26,7 @@ jobs:
         run: |
           git clone --branch 1.21.1 --single-branch https://github.com/lingmu0/OpenBlocks-Reborn.git modern-port
           git -C modern-port rev-parse HEAD > modern-port/UPSTREAM_COMMIT.txt
+          chmod +x modern-port/gradlew
 
       - name: Set release version
         run: |
@@ -42,7 +43,7 @@ jobs:
             echo "Java files: $(find src -type f -name '*.java' | wc -l)"
             echo "Java lines: $(find src -type f -name '*.java' -print0 | xargs -0 cat | wc -l)"
             echo "Resource files: $(find src/main/resources src/generated/resources -type f 2>/dev/null | wc -l)"
-            echo "Block registrations: $(grep -RhoE 'register\("[a-z0-9_]+' src/main/java 2>/dev/null | sort -u | wc -l)"
+            echo "Unique registration identifiers: $(grep -RhoE 'register\("[a-z0-9_]+' src/main/java 2>/dev/null | sort -u | wc -l)"
             echo "DeferredRegister uses: $(grep -Rho 'DeferredRegister' src/main/java 2>/dev/null | wc -l)"
             echo
             echo "Top-level Java packages:"
@@ -57,11 +58,13 @@ jobs:
         run: ./gradlew clean build --stacktrace --no-daemon
 
       - name: Package source snapshot
+        if: always()
         run: |
           rm -rf modern-port/.git modern-port/.gradle modern-port/run modern-port/build/tmp modern-port/build/classes
           tar -czf OpenBlocks-Reborn-10.0.0-source.tar.gz modern-port
 
       - name: Upload release and audit
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: openblocks-reborn-10.0.0-audited-build
@@ -71,4 +74,4 @@ jobs:
             modern-port/UPSTREAM_COMMIT.txt
             modern-port/gradle.properties
             OpenBlocks-Reborn-10.0.0-source.tar.gz
-          if-no-files-found: error
+          if-no-files-found: warn
