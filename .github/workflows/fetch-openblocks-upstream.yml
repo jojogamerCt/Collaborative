@@ -1,0 +1,47 @@
+name: Fetch OpenBlocks upstream sources
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths:
+      - '.github/workflows/fetch-openblocks-upstream.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clone complete upstream repositories
+        run: |
+          mkdir -p upstream
+          git clone --recursive https://github.com/OpenMods/OpenBlocks.git upstream/OpenBlocks
+          git clone --recursive https://github.com/OpenMods/OpenModsLib.git upstream/OpenModsLib
+          git -C upstream/OpenBlocks bundle create ../OpenBlocks.bundle --all
+          git -C upstream/OpenModsLib bundle create ../OpenModsLib.bundle --all
+          rm -rf upstream/OpenBlocks/.git upstream/OpenModsLib/.git
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          result = {}
+          for name in ('OpenBlocks', 'OpenModsLib'):
+              root = Path('upstream') / name
+              result[name] = {
+                  'java_files': len(list((root / 'src/main/java').rglob('*.java'))),
+                  'resource_files': len([p for p in (root / 'src/main/resources').rglob('*') if p.is_file()]),
+                  'total_files': len([p for p in root.rglob('*') if p.is_file()]),
+              }
+          Path('upstream/source-inventory.json').write_text(json.dumps(result, indent=2))
+          PY
+      - name: Upload full upstream source and history
+        uses: actions/upload-artifact@v4
+        with:
+          name: openblocks-complete-upstream
+          path: |
+            upstream/**
+            OpenBlocks.bundle
+            OpenModsLib.bundle
+          if-no-files-found: error
